@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLeadStore } from '../../store/leadStore';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import NewLeadModal from './NewLeadModal';
 
@@ -8,6 +8,7 @@ const LeadList: React.FC = () => {
   const { leads, selectedLead, selectLead } = useLeadStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('all');
 
   // Filter leads based on search term
   const filteredLeads = leads.filter(lead => 
@@ -23,36 +24,70 @@ const LeadList: React.FC = () => {
     return Math.round((completedStages / totalStages) * 100);
   };
 
+  // Sort leads based on completion percentage
+  const getSortedLeads = () => {
+    const sortedLeads = [...filteredLeads];
+    
+    switch (sortBy) {
+      case '50plus':
+        return sortedLeads.filter(lead => calculateProgress(lead) >= 50);
+      case '10to50':
+        return sortedLeads.filter(lead => calculateProgress(lead) >= 10 && calculateProgress(lead) < 50);
+      case 'below10':
+        return sortedLeads.filter(lead => calculateProgress(lead) < 10);
+      default:
+        return sortedLeads;
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-white border-r border-gray-200">
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Leads</h2>
-        <div className="mt-2 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
+        <div className="mt-2 space-y-2">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            )}
           </div>
-          <input
-            type="text"
-            placeholder="Search leads..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md appearance-none bg-white"
             >
-              <X className="h-4 w-4 text-gray-400" />
-            </button>
-          )}
+              <option value="all">All Leads</option>
+              <option value="50plus">50% or more complete</option>
+              <option value="10to50">10% - 50% complete</option>
+              <option value="below10">Less than 10% complete</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </div>
+          </div>
         </div>
       </div>
       
       <div className="overflow-y-auto flex-1">
-        {filteredLeads.length > 0 ? (
+        {getSortedLeads().length > 0 ? (
           <ul className="divide-y divide-gray-200">
-            {filteredLeads.map(lead => (
+            {getSortedLeads().map(lead => (
               <li
                 key={lead.id}
                 className={`

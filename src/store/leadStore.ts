@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { addDays, format } from 'date-fns';
-import { Lead, LeadStage, DEFAULT_STAGES } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { Lead, LeadStage, LeadStageStatus, DEFAULT_STAGES } from '../types';
 
 interface LeadState {
   leads: Lead[];
@@ -11,6 +11,7 @@ interface LeadState {
   updateLead: (id: string, updates: Partial<Omit<Lead, 'id' | 'stages'>>) => void;
   deleteLead: (id: string) => void;
   updateLeadStage: (leadId: string, stageId: string, updates: Partial<Omit<LeadStage, 'id' | 'order'>>) => void;
+  updateLeadTimelineInterval: (leadId: string, interval: number) => void;
 }
 
 // Create mock leads for demonstration
@@ -31,33 +32,36 @@ const createMockStages = (): LeadStage[] => {
 const mockLeads: Lead[] = [
   {
     id: '1',
-    customerName: 'John Smith',
-    phoneNumber: '+1 (555) 123-4567',
-    email: 'john.smith@example.com',
+    customerName: 'Thaha',
+    phoneNumber: '+91 98765 43210',
+    email: 'thaha@example.com',
     projectTitle: 'Modern Kitchen Renovation',
-    location: 'San Francisco, CA',
+    location: 'Vakara, Kozhikode, Kerala',
     createdAt: format(addDays(today, -14), 'yyyy-MM-dd'),
     stages: createMockStages(),
+    timelineInterval: 120,
   },
   {
     id: '2',
-    customerName: 'Emily Johnson',
-    phoneNumber: '+1 (555) 987-6543',
-    email: 'emily.johnson@example.com',
+    customerName: 'Saran',
+    phoneNumber: '+91 98765 43211',
+    email: 'saran@example.com',
     projectTitle: 'Office Space Design',
-    location: 'New York, NY',
+    location: 'Payyoli, Kerala',
     createdAt: format(addDays(today, -10), 'yyyy-MM-dd'),
     stages: createMockStages(),
+    timelineInterval: 120,
   },
   {
     id: '3',
-    customerName: 'Michael Williams',
-    phoneNumber: '+1 (555) 456-7890',
-    email: 'michael.williams@example.com',
+    customerName: 'Sidheeq',
+    phoneNumber: '+91 98765 43212',
+    email: 'sidheeq@example.com',
     projectTitle: 'Residential Interior Renovation',
-    location: 'Chicago, IL',
+    location: 'Bangalore, Karnataka',
     createdAt: format(addDays(today, -7), 'yyyy-MM-dd'),
     stages: createMockStages(),
+    timelineInterval: 120,
   },
 ];
 
@@ -75,6 +79,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
         id: uuidv4(),
         expectedDate: format(addDays(new Date(), index * 2), 'yyyy-MM-dd'),
       })),
+      timelineInterval: 120,
     };
 
     set(state => ({ 
@@ -111,7 +116,6 @@ export const useLeadStore = create<LeadState>((set, get) => ({
       const filteredLeads = state.leads.filter(lead => lead.id !== id);
       let selectedLead = state.selectedLead;
       
-      // If the deleted lead was selected, select another one or null
       if (state.selectedLead?.id === id) {
         selectedLead = filteredLeads.length > 0 ? filteredLeads[0] : null;
       }
@@ -122,7 +126,6 @@ export const useLeadStore = create<LeadState>((set, get) => ({
 
   updateLeadStage: (leadId, stageId, updates) => {
     set(state => {
-      // Update in the leads array
       const updatedLeads = state.leads.map(lead => {
         if (lead.id !== leadId) return lead;
         
@@ -131,7 +134,6 @@ export const useLeadStore = create<LeadState>((set, get) => ({
             ? { 
                 ...stage, 
                 ...updates,
-                // Set the actualDate to today if status is changed to 'done'
                 actualDate: updates.status === 'done' 
                   ? format(new Date(), 'yyyy-MM-dd') 
                   : stage.actualDate
@@ -142,7 +144,6 @@ export const useLeadStore = create<LeadState>((set, get) => ({
         return { ...lead, stages: updatedStages };
       });
       
-      // Also update in selectedLead if it's the one being modified
       let updatedSelectedLead = state.selectedLead;
       if (state.selectedLead?.id === leadId) {
         const updatedStages = state.selectedLead.stages.map(stage => 
@@ -161,6 +162,23 @@ export const useLeadStore = create<LeadState>((set, get) => ({
       }
       
       return { leads: updatedLeads, selectedLead: updatedSelectedLead };
+    });
+  },
+
+  updateLeadTimelineInterval: (leadId: string, interval: number) => {
+    set(state => {
+      const updatedLeads = state.leads.map(lead =>
+        lead.id === leadId ? { ...lead, timelineInterval: interval } : lead
+      );
+
+      const updatedSelectedLead = state.selectedLead?.id === leadId
+        ? { ...state.selectedLead, timelineInterval: interval }
+        : state.selectedLead;
+
+      return {
+        leads: updatedLeads,
+        selectedLead: updatedSelectedLead,
+      };
     });
   },
 }));
